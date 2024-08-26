@@ -1,11 +1,11 @@
 const DBManager = {
     db: null,
-    status:"0",
+    status: "0",
     dbName: "BookmarksDB",
     dbVersion: 3,  // 每次修改数据库结构时增加这个值
     storeName: "M-bookmarksStore",
 
-    checkVersion: function() {
+    checkVersion: function () {
         return new Promise((resolve, reject) => {
             const request = indexedDB.open(this.dbName);
             request.onsuccess = (event) => {
@@ -22,7 +22,7 @@ const DBManager = {
         });
     },
 
-    initDatabase: function() {
+    initDatabase: function () {
         return this.checkVersion().then(currentVersion => {
             if (currentVersion < this.dbVersion) {
                 console.log(`需要升级数据库从版本 ${currentVersion} 到 ${this.dbVersion}`);
@@ -33,18 +33,18 @@ const DBManager = {
             this.status = "1";
         });
     },
-    getBookmarkCount: function() {
+    getBookmarkCount: function () {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([this.storeName], "readonly");
                 const objectStore = transaction.objectStore(this.storeName);
                 const countRequest = objectStore.count();
 
-                countRequest.onsuccess = function() {
+                countRequest.onsuccess = function () {
                     resolve(countRequest.result);
                 };
 
-                countRequest.onerror = function(event) {
+                countRequest.onerror = function (event) {
                     console.error("获取书签数量时出错:", event);
                     reject(event);
                 };
@@ -52,7 +52,7 @@ const DBManager = {
         });
     },
 
-    openDatabase: function(version) {
+    openDatabase: function (version) {
         return new Promise((resolve, reject) => {
             console.log(`开始打开数据库，版本: ${version}`);
             const request = indexedDB.open(this.dbName, version);
@@ -74,12 +74,14 @@ const DBManager = {
                 if (!this.db.objectStoreNames.contains(this.storeName)) {
                     console.log(`创建对象存储 ${this.storeName}`);
                     const objectStore = this.db.createObjectStore(this.storeName, { keyPath: "id" });
-                    
+
                     const indexes = [
                         { name: "parentId", keyPath: "parentId", options: { unique: false } },
                         { name: "treeId", keyPath: "treeId", options: { unique: false } },
                         { name: "treeName", keyPath: "treeName", options: { unique: false } },
                         { name: "title", keyPath: "title", options: { unique: false } },
+                        { name: "keywords", keyPath: "keywords", options: { unique: false } },
+                        { name: "description", keyPath: "description", options: { unique: false } },
                         { name: "url", keyPath: "url", options: { unique: false } },
                         { name: "domain", keyPath: "domain", options: { unique: false } },
                         { name: "status", keyPath: "status", options: { unique: false } }
@@ -102,13 +104,13 @@ const DBManager = {
         });
     },
 
-    storeBookmarks: function(bookmarks) {
+    storeBookmarks: function (bookmarks) {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
                 console.log("开始存储书签，总数：", bookmarks.length);
                 const transaction = this.db.transaction([this.storeName], "readwrite");
                 const objectStore = transaction.objectStore(this.storeName);
-    
+
                 let count = 0;
                 bookmarks.forEach(bookmark => {
                     const request = objectStore.put(bookmark);
@@ -122,12 +124,12 @@ const DBManager = {
                         console.error("存储书签时出错", event.target.error);
                     };
                 });
-    
+
                 transaction.oncomplete = () => {
                     console.log(`所有书签已成功存储，总数：${count}`);
                     resolve();
                 };
-    
+
                 transaction.onerror = event => {
                     console.error("事务出错", event.target.error);
                     reject(event);
@@ -136,18 +138,18 @@ const DBManager = {
         });
     },
 
-    verifyBookmarks: function() {
+    verifyBookmarks: function () {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([this.storeName], "readonly");
                 const objectStore = transaction.objectStore(this.storeName);
                 const countRequest = objectStore.count();
-    
+
                 countRequest.onsuccess = () => {
                     console.log(`数据库中的书签数量：${countRequest.result}`);
                     resolve(countRequest.result);
                 };
-    
+
                 countRequest.onerror = (event) => {
                     console.error("验证书签数量时出错", event.target.error);
                     reject(event);
@@ -156,14 +158,14 @@ const DBManager = {
         });
     },
 
-    extendBookMarks: function() {
+    extendBookMarks: function () {
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
                 const getBookmarkTransaction = this.db.transaction([this.storeName], "readonly");
                 const objectStore = getBookmarkTransaction.objectStore(this.storeName);
-    
-                const request = objectStore.get("1009");
-    
+
+                const request = objectStore.get("104");
+
                 request.onsuccess = async (event) => {
                     const bookmark = event.target.result;
                     if (bookmark && bookmark.url) {
@@ -171,7 +173,7 @@ const DBManager = {
                             // 将状态更新为1（处理中）
                             bookmark.status = 1;
                             await this.updateBookmark(bookmark);
-    
+
                             console.log(`正在获取网页内容：${bookmark.url}`);
                             const response = await fetch(bookmark.url, {
                                 mode: 'cors',
@@ -181,29 +183,29 @@ const DBManager = {
                                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
                                 }
                             });
-    
+
                             console.log(`响应状态: ${response.status} ${response.statusText}`);
                             console.log(`响应类型: ${response.type}`);
-    
+
                             if (!response.ok) {
                                 throw new Error(`HTTP error! status: ${response.status}`);
                             }
-    
+
                             const html = await response.text();
                             const parser = new DOMParser();
                             const doc = parser.parseFromString(html, 'text/html');
-    
+
                             // 提取 meta 信息
                             const keywords = doc.querySelector('meta[name="keywords"]')?.content || '';
                             const description = doc.querySelector('meta[name="description"]')?.content || '';
-    
+
                             // 更新书签信息
                             bookmark.keywords = keywords;
                             bookmark.description = description;
                             bookmark.status = 2;
-    
+
                             await this.updateBookmark(bookmark);
-    
+
                             console.log("书签处理完成");
                             resolve(bookmark);
                         } catch (error) {
@@ -219,7 +221,7 @@ const DBManager = {
                         resolve(null);
                     }
                 };
-    
+
                 request.onerror = (event) => {
                     console.error("获取书签时发生错误", event);
                     reject(event);
@@ -227,20 +229,20 @@ const DBManager = {
             });
         });
     },
-    
+
     // 新增方法：更新书签
-    updateBookmark: function(bookmark) {
+    updateBookmark: function (bookmark) {
         return new Promise((resolve, reject) => {
             const transaction = this.db.transaction([this.storeName], "readwrite");
             const objectStore = transaction.objectStore(this.storeName);
             const request = objectStore.put(bookmark);
-    
+
             request.onsuccess = () => resolve();
             request.onerror = (event) => reject(event);
         });
     },
 
-    searchBookmarks: function(query,limit) {
+    searchBookmarks: function (query, limit) {
         limit = limit || 10;
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
@@ -255,11 +257,11 @@ const DBManager = {
                 request.onsuccess = event => {
                     const cursor = event.target.result;
 
-                    console.log("count:"+count+"-limit:"+limit);
-                    if(count>=limit){
+                    console.log("count:" + count + "-limit:" + limit);
+                    if (count >= limit) {
                         console.log(`搜索完成，找到 ${results.length} 个结果`);
                         resolve(results);
-                    }else if (cursor) {
+                    } else if (cursor) {
                         if (cursor.value.title.toLowerCase().includes(query.toLowerCase())) {
                             results.push(cursor.value);
                             count++;
