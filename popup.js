@@ -152,7 +152,7 @@ function formatBookmark(node, treeId, treeName) {
     index: node.index,
     treeId: treeId,
     treeName: treeName,
-    domain: new URL(node.url).hostname,
+    domain: node.url? new URL(node.url).hostname : null,
     domainTitle: "",
     keywords: "", // 可以根据需要添加关键词
     description: "", // 可以根据需要添加描述

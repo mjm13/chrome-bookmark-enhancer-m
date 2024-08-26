@@ -8,7 +8,13 @@
     "storage",
     "webRequest",
     "activeTab",
-    "scripting"
+    "scripting",
+    "webNavigation",
+     "<all_urls>",
+      "https://github.com/*"
+  ],
+  "host_permissions": [
+    "https://github.com/*"
   ],
   "background": {
     "service_worker": "background.js"

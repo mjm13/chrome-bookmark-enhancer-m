@@ -163,54 +163,36 @@ const DBManager = {
             return new Promise((resolve, reject) => {
                 const getBookmarkTransaction = this.db.transaction([this.storeName], "readonly");
                 const objectStore = getBookmarkTransaction.objectStore(this.storeName);
-
+    
                 const request = objectStore.get("104");
-
+    
                 request.onsuccess = async (event) => {
                     const bookmark = event.target.result;
                     if (bookmark && bookmark.url) {
                         try {
-                            // 将状态更新为1（处理中）
                             bookmark.status = 1;
                             await this.updateBookmark(bookmark);
-
+    
                             console.log(`正在获取网页内容：${bookmark.url}`);
-                            const response = await fetch(bookmark.url, {
-                                mode: 'cors',
-                                cache: 'no-cache',
-                                credentials: 'omit',
-                                headers: {
-                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                            
+                            chrome.runtime.sendMessage({action: 'fetchUrl', url: bookmark.url}, async response => {
+                                if (response.error) {
+                                    throw new Error(response.error);
                                 }
+    
+                                const { metaKeywords, metaDescription } = response.data;
+    
+                                bookmark.keywords = metaKeywords;
+                                bookmark.description = metaDescription;
+                                bookmark.status = 2;
+    
+                                await this.updateBookmark(bookmark);
+                                console.log("书签处理完成");
+                                resolve(bookmark);
                             });
-
-                            console.log(`响应状态: ${response.status} ${response.statusText}`);
-                            console.log(`响应类型: ${response.type}`);
-
-                            if (!response.ok) {
-                                throw new Error(`HTTP error! status: ${response.status}`);
-                            }
-
-                            const html = await response.text();
-                            const parser = new DOMParser();
-                            const doc = parser.parseFromString(html, 'text/html');
-
-                            // 提取 meta 信息
-                            const keywords = doc.querySelector('meta[name="keywords"]')?.content || '';
-                            const description = doc.querySelector('meta[name="description"]')?.content || '';
-
-                            // 更新书签信息
-                            bookmark.keywords = keywords;
-                            bookmark.description = description;
-                            bookmark.status = 2;
-
-                            await this.updateBookmark(bookmark);
-
-                            console.log("书签处理完成");
-                            resolve(bookmark);
                         } catch (error) {
                             console.error(`处理书签时出错: ${bookmark.url}`, error);
-                            bookmark.status = 3; // 设置为错误状态
+                            bookmark.status = 3;
                             bookmark.errorMessage = error.message;
                             bookmark.errorDetails = error.stack;
                             await this.updateBookmark(bookmark);
@@ -221,7 +203,7 @@ const DBManager = {
                         resolve(null);
                     }
                 };
-
+    
                 request.onerror = (event) => {
                     console.error("获取书签时发生错误", event);
                     reject(event);
