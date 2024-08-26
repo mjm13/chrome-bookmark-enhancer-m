@@ -6,6 +6,8 @@
   "permissions": [
     "bookmarks",
     "storage",
+    "webRequest",
+    "webRequestBlocking",
     "activeTab",
     "scripting"
   ],
