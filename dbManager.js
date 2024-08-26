@@ -2,7 +2,7 @@ const DBManager = {
     db: null,
     status:"0",
     dbName: "BookmarksDB",
-    dbVersion: "0.0.1",  // 每次修改数据库结构时增加这个值
+    dbVersion: 3,  // 每次修改数据库结构时增加这个值
     storeName: "M-bookmarksStore",
 
     checkVersion: function() {
@@ -82,7 +82,7 @@ const DBManager = {
                         { name: "title", keyPath: "title", options: { unique: false } },
                         { name: "url", keyPath: "url", options: { unique: false } },
                         { name: "domain", keyPath: "domain", options: { unique: false } },
-                        { name: "type", keyPath: "type", options: { unique: false } }
+                        { name: "status", keyPath: "status", options: { unique: false } }
                     ];
 
                     indexes.forEach(index => {
@@ -156,8 +156,92 @@ const DBManager = {
         });
     },
 
-    searchBookmarks: function(query,limit=10) {
-        alert(`开始搜索书签: ${query}`);
+    extendBookMarks: function() {
+        return this.initDatabase().then(() => {
+            return new Promise((resolve, reject) => {
+                const getBookmarkTransaction = this.db.transaction([this.storeName], "readonly");
+                const objectStore = getBookmarkTransaction.objectStore(this.storeName);
+    
+                const request = objectStore.get("1009");
+    
+                request.onsuccess = async (event) => {
+                    const bookmark = event.target.result;
+                    if (bookmark && bookmark.url) {
+                        try {
+                            // 将状态更新为1（处理中）
+                            bookmark.status = 1;
+                            await this.updateBookmark(bookmark);
+    
+                            console.log(`正在获取网页内容：${bookmark.url}`);
+                            const response = await fetch(bookmark.url, {
+                                mode: 'cors',
+                                cache: 'no-cache',
+                                credentials: 'omit',
+                                headers: {
+                                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+                                }
+                            });
+    
+                            console.log(`响应状态: ${response.status} ${response.statusText}`);
+                            console.log(`响应类型: ${response.type}`);
+    
+                            if (!response.ok) {
+                                throw new Error(`HTTP error! status: ${response.status}`);
+                            }
+    
+                            const html = await response.text();
+                            const parser = new DOMParser();
+                            const doc = parser.parseFromString(html, 'text/html');
+    
+                            // 提取 meta 信息
+                            const keywords = doc.querySelector('meta[name="keywords"]')?.content || '';
+                            const description = doc.querySelector('meta[name="description"]')?.content || '';
+    
+                            // 更新书签信息
+                            bookmark.keywords = keywords;
+                            bookmark.description = description;
+                            bookmark.status = 2;
+    
+                            await this.updateBookmark(bookmark);
+    
+                            console.log("书签处理完成");
+                            resolve(bookmark);
+                        } catch (error) {
+                            console.error(`处理书签时出错: ${bookmark.url}`, error);
+                            bookmark.status = 3; // 设置为错误状态
+                            bookmark.errorMessage = error.message;
+                            bookmark.errorDetails = error.stack;
+                            await this.updateBookmark(bookmark);
+                            reject(error);
+                        }
+                    } else {
+                        console.log("未找到指定ID的书签或书签没有URL");
+                        resolve(null);
+                    }
+                };
+    
+                request.onerror = (event) => {
+                    console.error("获取书签时发生错误", event);
+                    reject(event);
+                };
+            });
+        });
+    },
+    
+    // 新增方法：更新书签
+    updateBookmark: function(bookmark) {
+        return new Promise((resolve, reject) => {
+            const transaction = this.db.transaction([this.storeName], "readwrite");
+            const objectStore = transaction.objectStore(this.storeName);
+            const request = objectStore.put(bookmark);
+    
+            request.onsuccess = () => resolve();
+            request.onerror = (event) => reject(event);
+        });
+    },
+
+    searchBookmarks: function(query,limit) {
+        limit = limit || 10;
         return this.initDatabase().then(() => {
             return new Promise((resolve, reject) => {
                 const transaction = this.db.transaction([this.storeName], "readonly");

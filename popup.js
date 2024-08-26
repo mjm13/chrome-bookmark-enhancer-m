@@ -8,7 +8,10 @@ function setupEventListeners() {
   document.getElementById('searchBtn').addEventListener('click', searchBookMarks);
   // 初始化书签的事件监听器
   document.getElementById('initBtn').addEventListener('click', initializeBookmarks);
+  // 扩展原有书签数据
+  document.getElementById('extenderBtn').addEventListener('click', extenderBookmarks);
 
+  
   DBManager.getBookmarkCount()
   .then(count => {
       // 假设我们有一个 ID 为 'bookmarkCount' 的元素来显示数量
@@ -19,6 +22,16 @@ function setupEventListeners() {
   })
   .catch(error => {
       console.error("获取书签数量时出错:", error);
+  });
+}
+
+function extenderBookmarks(){
+  DBManager.extendBookMarks()
+  .then(() => {
+      alert("加载完成");
+  })
+  .catch(error => {
+      console.log("搜索出错:"+ error);
   });
 }
 
@@ -92,40 +105,37 @@ function displayBookmarksTable(bookmarks) {
 
 function initializeBookmarks() {
   chrome.bookmarks.getTree(function(bookmarkTreeNodes) {
-      alert("开始初始化书签");
+      console.log("开始初始化书签");
       const bookmarks = flattenBookmarkTree(bookmarkTreeNodes);
-      alert(bookmarks.length)
+      console.log(bookmarks.length)
       DBManager.storeBookmarks(bookmarks)
         .then(() => {
           console.log("书签初始化完成");
           return DBManager.verifyBookmarks();
         })
         .then((count) => {
-            alert(`书签已成功初始化！数据库中共有 ${count} 个书签。`);
+          console.log(`书签已成功初始化！数据库中共有 ${count} 个书签。`);
         })
         .catch(error => {
             console.error("初始化或验证书签时出错:", error);
-            alert("操作出错，请查看控制台获取详细信息。");
         });
   });
 }
 
-function flattenBookmarkTree(bookmarkNodes, treeId = "",treeName="") {
+function flattenBookmarkTree(bookmarkNodes, treeId = "", treeName = "") {
   let bookmarks = [];
   for (let node of bookmarkNodes) {
-      if (node.url) {
-          bookmarks.push(formatBookmark(node, treeId,treeName));
-      }
-      if (node.children) {
-        if(treeId){
-          treeId = treeId+"/"+node.id;
-          treeName = treeName+"/"+node.title;
-        }else{
-          treeId = node.id;
-          treeName = node.title;
-        }
-        bookmarks = bookmarks.concat(flattenBookmarkTree(node.children, treeId,treeName));
-      }
+    if (node.url) {
+      // 对于 URL，直接使用当前的 treeId 和 treeName
+      bookmarks.push(formatBookmark(node, treeId, treeName));
+    } else if (node.children) {
+      // 只有在处理文件夹时才更新 treeId 和 treeName
+      let currentTreeId = treeId ? `${treeId}/${node.id}` : node.id;
+      let currentTreeName = treeName ? `${treeName}/${node.title}` : node.title;
+      
+      // 递归处理子节点
+      bookmarks = bookmarks.concat(flattenBookmarkTree(node.children, currentTreeId, currentTreeName));
+    }
   }
   return bookmarks;
 }
