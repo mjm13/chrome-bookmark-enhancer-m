@@ -1,4 +1,4 @@
-importScripts('dbManager.js');
+importScripts('lib/dbManager.js');
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Bookmark Extender 插件已安装");
