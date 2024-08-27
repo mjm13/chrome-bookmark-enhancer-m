@@ -6,6 +6,10 @@ chrome.runtime.onInstalled.addListener(() => {
     console.log("数据库初始化完成");
 });
 
+chrome.action.onClicked.addListener((tab) => {
+  chrome.tabs.create({ url: '/content/bookmarkMgr.html' }); 
+});
+
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'fetchUrl') {
       chrome.tabs.create({ url: request.url, active: false }, (tab) => {
@@ -21,7 +25,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                 const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
                 const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
                 const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
-                return { metaKeywords, metaDescription };
+                return { metaKeywords,metaTitle, metaDescription };
               }
             }, (results) => {
               chrome.tabs.remove(tabId);

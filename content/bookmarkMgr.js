@@ -47,59 +47,19 @@ function searchBookMarks() {
 }
 
 function displayBookmarksTable(bookmarks) {
-  const resultDiv = document.getElementById('result');
-  resultDiv.innerHTML = ''; // 清空现有内容
-
+  const resultTable = document.getElementById('resultTable').getElementsByTagName('tbody')[0];
   if (bookmarks.length === 0) {
-    resultDiv.textContent = '没有找到书签';
+    const row = resultTable.insertRow();
+    row.insertCell(0).textContent = "未找到书签!";
     return;
   }
-
-  const table = document.createElement('table');
-  table.style.borderCollapse = 'collapse';
-  table.style.width = '100%';
-
-  // 创建表头
-  const thead = document.createElement('thead');
-  const headerRow = document.createElement('tr');
-  ['书签名称', '书签名称', '书签名称', '地址', '创建/最后修改时间'].forEach(headerText => {
-    const th = document.createElement('th');
-    th.textContent = headerText;
-    th.style.border = '1px solid black';
-    th.style.padding = '5px';
-    headerRow.appendChild(th);
-  });
-  thead.appendChild(headerRow);
-  table.appendChild(thead);
-
-  // 创建表体
-  const tbody = document.createElement('tbody');
   bookmarks.forEach(bookmark => {
-    const row = document.createElement('tr');
-
-    const titleCell = document.createElement('td');
-    titleCell.textContent = bookmark.title;
-    titleCell.style.border = '1px solid black';
-    titleCell.style.padding = '5px';
-    row.appendChild(titleCell);
-
-    const urlCell = document.createElement('td');
-    urlCell.textContent = bookmark.url;
-    urlCell.style.border = '1px solid black';
-    urlCell.style.padding = '5px';
-    row.appendChild(urlCell);
-
-    const dateCell = document.createElement('td');
-    dateCell.textContent = new Date(bookmark.dateAdded).toLocaleString();
-    dateCell.style.border = '1px solid black';
-    dateCell.style.padding = '5px';
-    row.appendChild(dateCell);
-
-    tbody.appendChild(row);
-  });
-  table.appendChild(tbody);
-
-  resultDiv.appendChild(table);
+      const row = resultTable.insertRow();
+      row.insertCell(0).textContent = bookmark.treeName;
+      row.insertCell(1).innerHTML = `<a href="${bookmark.url}" target="_blank">${bookmark.title?bookmark.title:bookmark.url}</a`;
+      row.insertCell(2).textContent = bookmark.metaKeywords;
+      row.insertCell(3).textContent = bookmark.metaDescription;
+  });	
 }
 
 
