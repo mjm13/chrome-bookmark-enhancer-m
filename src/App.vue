@@ -1,6 +1,10 @@
 <template>
-  <el-container>
-    <el-aside width="200px">
+  <el-container style="height: 95vh">
+    <el-aside
+      :style="{ width: asideWidth + 'px', cursor: 'ew-resize',border:'1px solid #eee' }"
+      @mousedown="startDrag"
+      @mouseup="stopDrag"
+    >
       <el-tree
         :data="treeData"
         :props="defaultProps"
@@ -9,10 +13,15 @@
     </el-aside>
     <el-container>
       <el-header>
-        <h2>书签列表</h2>
+        <el-input
+          placeholder="搜索书签"
+          v-model="searchQuery"
+        ></el-input>
+        <el-button type="primary" @click="searchBookmarks">搜索</el-button>
+        <el-button type="success" @click="addBookmark">添加书签</el-button>
       </el-header>
       <el-main>
-        <el-table :data="bookmarks" style="width: 100%">
+        <el-table :data="bookmarks" style="width: 100%" size="small">
           <el-table-column prop="title" label="标题" width="180">
             <template #default="scope">
               <el-link :href="scope.row.url" target="_blank">{{ scope.row.title }}</el-link>
@@ -28,7 +37,7 @@
 </template>
 
 <script>
-import { ElContainer, ElAside, ElHeader, ElMain, ElTable, ElTableColumn, ElTree, ElLink } from 'element-plus';
+import { ElContainer, ElAside, ElHeader, ElMain, ElTable, ElTableColumn, ElTree, ElLink, ElInput, ElButton } from 'element-plus';
 
 export default {
   name: 'App',
@@ -40,33 +49,64 @@ export default {
     ElTable,
     ElTableColumn,
     ElTree,
-    ElLink
+    ElLink,
+    ElInput,
+    ElButton
   },
   data() {
     return {
-      treeData: [], // 树型菜单数据
-      bookmarks: [], // 书签数据
+      treeData: [],
+      bookmarks: [],
+      searchQuery: '',
       defaultProps: {
         children: 'children',
         label: 'title'
-      }
+      },
+      asideWidth: 200, // 初始宽度
+      isDragging: false, // 拖动状态
+      startX: 0 // 鼠标起始位置
     };
   },
   methods: {
+    startDrag(event) {
+      event.preventDefault(); 
+      this.isDragging = true;
+      this.startX = event.clientX; // 记录鼠标起始位置
+      document.addEventListener('mousemove', this.onDrag);
+      document.addEventListener('mouseup', this.stopDrag);
+      console.log("startDrag");
+    },
+    onDrag(event) {
+      event.preventDefault(); 
+      if (this.isDragging) {
+        const diffX = event.clientX - this.startX; // 计算鼠标移动的距离
+        this.asideWidth = Math.max(100, this.asideWidth + diffX); // 更新宽度，最小为100px
+        this.startX = event.clientX; // 更新起始位置
+      }
+      console.log("isDragging:"+this.isDragging);
+    },
+    stopDrag() {
+      if (this.isDragging) {
+        this.isDragging = false;
+        document.removeEventListener('mousemove', this.onDrag);
+        document.removeEventListener('mouseup', this.stopDrag);
+        console.log("stopDrag");
+      }
+    },
     handleNodeClick(data) {
-      // 根据点击的节点加载书签数据
-      // this.loadBookmarks(data.id);
+      this.loadBookmarks(data.id);
     },
     loadBookmarks(treeId) {
-      // 这里可以调用 DBManager 或其他方法来加载书签数据
-      // 示例：假设从 DBManager 获取书签
-      // DBManager.getBookmarksByTreeId(treeId).then(bookmarks => {
-      //   this.bookmarks = bookmarks;
-      // });
+      // 加载书签数据的逻辑
+    },
+    searchBookmarks() {
+      console.log('搜索:', this.searchQuery);
+    },
+    addBookmark() {
+      console.log('添加书签');
     }
   },
   mounted() {
-    // 初始化树型菜单数据
     this.treeData = [
       { id: 1, title: '书签文件夹 1', children: [] },
       { id: 2, title: '书签文件夹 2', children: [] }
@@ -75,13 +115,3 @@ export default {
 };
 </script>
 
-<style>
-#app {
-  font-family: Avenir, Helvetica, Arial, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-align: center;
-  color: #2c3e50;
-  margin-top: 60px;
-}
-</style>
