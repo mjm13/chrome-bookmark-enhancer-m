@@ -18,8 +18,9 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             chrome.scripting.executeScript({
               target: { tabId: tabId },
               function: () => {
-                const metaKeywords = document.querySelector('meta[name="keywords"]')?.content || '';
-                const metaDescription = document.querySelector('meta[name="description"]')?.content || '';
+                const metaKeywords = document.querySelector('meta[name$="keywords"]')?.content || '';
+                const metaTitle = document.querySelector('meta[name$="title"]')?.content || '';
+                const metaDescription = document.querySelector('meta[name$="description"]')?.content || '';
                 return { metaKeywords, metaDescription };
               }
             }, (results) => {
