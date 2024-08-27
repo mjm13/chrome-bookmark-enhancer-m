@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Bookmark Extender",
+  "name": "MarkPlus-M",
   "version": "1.0",
   "description": "扩展书签的功能，增加额外字段用于查询和整理。",
   "permissions": [
@@ -12,7 +12,7 @@
     "webNavigation"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "assets/lib/background.js"
   },
   "action": {
     "default_icon": {
