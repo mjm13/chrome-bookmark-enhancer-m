@@ -1,4 +1,5 @@
 importScripts('dbManager.js');
+ //import { DBManager } from 'dbManager.lib';
 
 chrome.runtime.onInstalled.addListener(() => {
     console.log("Bookmark Extender 插件已安装");
@@ -7,18 +8,18 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.action.onClicked.addListener((tab) => {
-  chrome.tabs.create({ url: 'index.html' }); 
+  chrome.tabs.create({ url: 'index.html' });
 });
 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.action === 'fetchUrl') {
       chrome.tabs.create({ url: request.url, active: false }, (tab) => {
         const tabId = tab.id;
-        
+
         const listener = (details) => {
           if (details.tabId === tabId && details.frameId === 0) {
             chrome.webNavigation.onCompleted.removeListener(listener);
-            
+
             chrome.scripting.executeScript({
               target: { tabId: tabId },
               function: () => {
@@ -37,7 +38,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
             });
           }
         };
-  
+
         chrome.webNavigation.onCompleted.addListener(listener);
       });
       return true;  // 保持消息通道开放
