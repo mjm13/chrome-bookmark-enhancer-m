@@ -153,8 +153,26 @@ export default {
         addBookmark() {
 
         },
+        initBookMarks(){
+            chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
+                console.log("开始初始化书签");
+                const bookmarks = flattenBookmarkTree(bookmarkTreeNodes);
+                console.log(bookmarks.length)
+                DBManager.storeBookmarks(bookmarks)
+                    .then(() => {
+                        console.log("书签初始化完成");
+                        return DBManager.verifyBookmarks();
+                    })
+                    .then((count) => {
+                        console.log(`书签已成功初始化！数据库中共有 ${count} 个书签。`);
+                    })
+                    .catch(error => {
+                        console.error("初始化或验证书签时出错:", error);
+                    });
+            });
+        },
         initTree() {
-            this.DBManager.queryBookmarks({
+            DBManager.queryBookmarks({
                 prop: 'type',
                 operator: 'eq',
                 value: 'folder'
@@ -176,6 +194,7 @@ export default {
         }
     },
     mounted() {
+        this.initBookMarks();
         this.initTree();
     }
 };
