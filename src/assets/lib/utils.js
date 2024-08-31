@@ -42,3 +42,9 @@ function flattenBookmarkTree(bookmarkNodes, treeId = "", treeName = "") {
       dateGroupModifiedTime: node.dateGroupModified ? new Date(node.dateGroupModified).toLocaleString() : null
     };
   }
+
+
+export default {
+  formatBookmark,
+  flattenBookmarkTree
+}

@@ -12,7 +12,21 @@
     "webNavigation"
   ],
   "background": {
-    "service_worker": "assets/lib/background.js"
+    "service_worker": "assets/lib/background.js",
+    "type": "module",
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"],
+        "js": ["content.js"],
+        "type": "module"
+      }
+    ],
+    "web_accessible_resources": [
+      {
+        "resources": ["assets/lib/dbManager.js"],
+        "matches": ["<all_urls>"]
+      }
+    ]
   },
   "action": {
     "default_icon": {

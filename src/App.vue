@@ -50,7 +50,7 @@ import {
     ElTree
 } from 'element-plus';
 import {flattenBookmarkTree, formatBookmark} from './assets/lib/utils.js';
-import {DBManager} from './assets/lib/dbManager.js';
+import DBManager from './assets/lib/dbManager.js';
 
 export default {
     name: 'App',
