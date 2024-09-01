@@ -1,24 +1,23 @@
-
-function flattenBookmarkTree(bookmarkNodes, treeId = "", treeName = "") {
+const Util={
+  flattenBookmarkTree:function (bookmarkNodes, treeId = "", treeName = "") {
     let bookmarks = [];
     for (let node of bookmarkNodes) {
       if (node.url) {
         // 对于 URL，直接使用当前的 treeId 和 treeName
-        bookmarks.push(formatBookmark(node, treeId, treeName));
+        bookmarks.push(this.formatBookmark(node, treeId, treeName));
       } else if (node.children) {
-        bookmarks.push(formatBookmark(node, treeId, treeName));
+        bookmarks.push(this.formatBookmark(node, treeId, treeName));
         // 只有在处理文件夹时才更新 treeId 和 treeName
         let currentTreeId = treeId ? `${treeId}/${node.id}` : node.id;
         let currentTreeName = treeName ? `${treeName}/${node.title}` : node.title;
 
         // 递归处理子节点
-        bookmarks = bookmarks.concat(flattenBookmarkTree(node.children, currentTreeId, currentTreeName));
+        bookmarks = bookmarks.concat(this.flattenBookmarkTree(node.children, currentTreeId, currentTreeName));
       }
     }
     return bookmarks;
-  }
-
-  function formatBookmark(node, treeId, treeName) {
+  },
+  formatBookmark:function (node, treeId, treeName) {
     return {
       id: node.id,
       parentId: node.parentId,
@@ -41,10 +40,28 @@ function flattenBookmarkTree(bookmarkNodes, treeId = "", treeName = "") {
       dateAddedTime: new Date(node.dateAdded).toLocaleString(),
       dateGroupModifiedTime: node.dateGroupModified ? new Date(node.dateGroupModified).toLocaleString() : null
     };
+  },
+  buildTree:function(datas){
+    const map = new Map();
+    datas.forEach(node => {
+      map.set(node.id, { ...node, children: [] });
+    });
+    const tree = [];
+    datas.forEach(node => {
+      const parent = map.get(node.parentId);
+      if (parent) {
+        parent.children.push(map.get(node.id));
+      } else {
+        tree.push(map.get(node.id));
+      }
+    });
+    return tree;
   }
 
-
-export default {
-  formatBookmark,
-  flattenBookmarkTree
 }
+
+
+
+
+
+export default Util

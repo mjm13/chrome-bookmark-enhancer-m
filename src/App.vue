@@ -7,7 +7,7 @@
         </el-scrollbar>
     </el-aside>
     <el-container>
-        <el-header style="height: 10vh;border: 1px solid red ">
+        <el-header style="border: 1px solid red ">
             <el-space wrap>
                 <el-select v-model="searchQuery.prop" placeholder="请选择" style="width: 80px;">
                     <el-option v-for="item in searchQuery.options" :key="item.value" :label="item.label"
@@ -37,6 +37,8 @@
 </template>
 
 <script>
+import DBManager from './assets/lib/dbManager.js';
+import Util from './assets/lib/utils.js';
 import {
     ElAside,
     ElButton,
@@ -49,8 +51,7 @@ import {
     ElTableColumn,
     ElTree
 } from 'element-plus';
-import {flattenBookmarkTree, formatBookmark} from './assets/lib/utils.js';
-import DBManager from './assets/lib/dbManager.js';
+
 
 export default {
     name: 'App',
@@ -156,15 +157,11 @@ export default {
         initBookMarks(){
             chrome.bookmarks.getTree(function (bookmarkTreeNodes) {
                 console.log("开始初始化书签");
-                const bookmarks = flattenBookmarkTree(bookmarkTreeNodes);
+                const bookmarks = Util.flattenBookmarkTree(bookmarkTreeNodes);
                 console.log(bookmarks.length)
-                DBManager.storeBookmarks(bookmarks)
+                DBManager.saveBookmarks(bookmarks)
                     .then(() => {
                         console.log("书签初始化完成");
-                        return DBManager.verifyBookmarks();
-                    })
-                    .then((count) => {
-                        console.log(`书签已成功初始化！数据库中共有 ${count} 个书签。`);
                     })
                     .catch(error => {
                         console.error("初始化或验证书签时出错:", error);
@@ -176,25 +173,13 @@ export default {
                 prop: 'type',
                 operator: 'eq',
                 value: 'folder'
-            }).then((data) => {
-                debugger;
-                console.log(data);
+            }).then((datas) => {
+                this.treeData = Util.buildTree(datas).get(0).children;
             })
-            this.treeData = [{
-                id: 1,
-                title: '书签文件夹 1',
-                children: []
-            },
-                {
-                    id: 2,
-                    title: '书签文件夹 2',
-                    children: []
-                }
-            ];
         }
     },
     mounted() {
-        this.initBookMarks();
+        // this.initBookMarks();
         this.initTree();
     }
 };

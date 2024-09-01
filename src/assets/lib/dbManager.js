@@ -92,23 +92,6 @@ const DBManager = {
                 }
                 const {prop, operator, value, limit = -1} = queryDto;
                 // 根据不同的匹配规则进行查询
-                let query;
-                switch (operator) {
-                    case 'eq':
-                        query = `WHERE ${prop} = ?`;
-                        break;
-                    case 'like':
-                        query = `WHERE ${prop} LIKE ?`;
-                        break;
-                    case 'gt':
-                        query = `WHERE ${prop} > ?`;
-                        break;
-                    case 'lt':
-                        query = `WHERE ${prop} < ?`;
-                        break;
-                    default:
-                        return [];
-                }
                 const transaction = this.db.transaction([this.storeName], "readonly");
                 const objectStore = transaction.objectStore(this.storeName);
 
@@ -122,17 +105,22 @@ const DBManager = {
                         console.log(`搜索完成，找到 ${results.length} 个结果`);
                         resolve(results);
                     } else if (cursor) {
-                        debugger;
                         if (operator === 'like') {
                             const regex = new RegExp(value, 'i');
                             if (regex.test(cursor.value[prop])) {
                                 results.push(cursor.value);
                             }
                         } else {
-                            if (eval(`${cursor.value[prop]}
-                            ${operator}
-                            "${value}"`)) {
-                                results.push(cursor.value);
+                            switch (operator) {
+                                case 'eq':
+                                    cursor.value[prop] === value && results.push(cursor.value);
+                                    break;
+                                case 'gt':
+                                    cursor.value[prop] >= value && results.push(cursor.value);
+                                    break;
+                                case 'lt':
+                                    cursor.value[prop] <= value && results.push(cursor.value);
+                                    break;
                             }
                         }
                         cursor.continue();
